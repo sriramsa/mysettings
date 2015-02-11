@@ -3,6 +3,9 @@
 "
 
 " Lets vim take .vimrc file if it is present in the working directory
+"
+source ~/src/github/mysettings/scripts/vim_switch_scheme.vim
+
 set exrc
 set secure
 
@@ -278,7 +281,8 @@ autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTree
 nmap <F8> :TagbarToggle<CR>
 
 "colorscheme summerfruit256
-colorscheme solarized
+"colorscheme solarized
+colorscheme molokai
 
 " Shift+Tab goes across windows
 :map <S-Tab> w
