@@ -99,6 +99,7 @@ Plugin 'bling/vim-airline'
 Plugin 'majutsushi/tagbar' " Tagbar on the right, use F8
 Plugin 'Valloric/YouCompleteMe'
 Plugin 'flazz/vim-colorschemes'
+Plugin 'raimondi/delimitMate'
 Plugin 'scrooloose/nerdtree'
 Plugin 'godlygeek/tabular'
 Plugin 'octol/vim-cpp-enhanced-highlight'
