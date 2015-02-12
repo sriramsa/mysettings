@@ -25,7 +25,7 @@ set autoread
 " => VIM user interface
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Set 4 lines to the cursor - when moving vertically using j/k
-set so=4
+set so=3
 
 " Don't redraw while executing macros (good performance config)
 set lazyredraw
@@ -53,7 +53,7 @@ set shiftwidth=4
 set tabstop=4
 
 " Colors
-"set t_Co=256
+set t_Co=256
 
 " Linebreak on 500 characters
 set lbr
@@ -95,6 +95,7 @@ Plugin 'L9'
 "Plugin 'scrooloose/syntastic'
 "Plugin 'bling/vim-bufferline'
 "Plugin 'ervandew/supertab'
+"
 Plugin 'bling/vim-airline'
 Plugin 'majutsushi/tagbar' " Tagbar on the right, use F8
 Plugin 'Valloric/YouCompleteMe'
@@ -111,9 +112,10 @@ Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
 Plugin 'junegunn/goyo.vim'
 Plugin 'fatih/vim-go'
-Plugin 'ntpeters/vim-better-whitespace'
+"Plugin 'ntpeters/vim-better-whitespace'
 Plugin 'christoomey/vim-tmux-navigator'
 
+let g:airline_powerline_fonts = 1
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -281,8 +283,8 @@ autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTree
 nmap <F8> :TagbarToggle<CR>
 
 "colorscheme summerfruit256
-"colorscheme solarized
-colorscheme molokai
+colorscheme solarized
+"colorscheme molokai
 
 " Shift+Tab goes across windows
 :map <S-Tab> w
