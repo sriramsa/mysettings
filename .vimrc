@@ -1,5 +1,5 @@
 "
-" sriramsh
+" sriramsh: My own vimrc file
 "
 
 " Lets vim take .vimrc file if it is present in the working directory
