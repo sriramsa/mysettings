@@ -8,6 +8,7 @@ source ~/src/github/mysettings/scripts/vim_switch_scheme.vim
 
 set exrc
 set secure
+syn on
 
 " Highlight col 110 with color
 "set colorcolumn=110
@@ -25,7 +26,7 @@ set autoread
 " => VIM user interface
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Set 4 lines to the cursor - when moving vertically using j/k
-set so=4
+set so=3
 
 " Don't redraw while executing macros (good performance config)
 set lazyredraw
@@ -53,7 +54,7 @@ set shiftwidth=4
 set tabstop=4
 
 " Colors
-"set t_Co=256
+set t_Co=256
 
 " Linebreak on 500 characters
 set lbr
@@ -78,7 +79,8 @@ Plugin 'gmarik/Vundle.vim'
 " The following are examples of different formats supported.
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
-"Plugin 'tpope/vim-fugitive'
+Plugin 'airblade/vim-gitgutter'
+Plugin 'tpope/vim-fugitive'
 " plugin from http://vim-scripts.org/vim/scripts.html
 Plugin 'L9'
 " Git plugin not hosted on GitHub
@@ -95,6 +97,7 @@ Plugin 'L9'
 "Plugin 'scrooloose/syntastic'
 "Plugin 'bling/vim-bufferline'
 "Plugin 'ervandew/supertab'
+"
 Plugin 'bling/vim-airline'
 Plugin 'majutsushi/tagbar' " Tagbar on the right, use F8
 Plugin 'Valloric/YouCompleteMe'
@@ -112,9 +115,11 @@ Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
 Plugin 'junegunn/goyo.vim'
 Plugin 'fatih/vim-go'
-Plugin 'ntpeters/vim-better-whitespace'
+"Plugin 'ntpeters/vim-better-whitespace'
 Plugin 'christoomey/vim-tmux-navigator'
+"Plugin 'bbchung/clighter'
 
+let g:airline_powerline_fonts = 1
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -136,6 +141,15 @@ let g:ycm_global_ycm_extra_conf = "~/.vim/.ycm_extra_conf.py"
 "let g:ycm_key_list_select_completion = ['<C-TAB>','<Down>']
 let g:ycm_key_list_previous_completion = ['<C-S-TAB>','<Up>']
 
+let g:ycm_register_as_syntastic_checker = 1
+let g:Show_diagnostics_ui = 0
+
+let g:ycm_enable_diagnostic_signs = 0
+let g:ycm_enable_diagnostic_highlighting = 0
+let g:ycm_always_populate_location_list = 0
+
+let g:ycm_complete_in_strings = 1
+"=====================
 "let g:SuperTabDefaultCompletionType = '<C-Tab>'
 
 " Ultisnips settings
@@ -169,7 +183,7 @@ if has('cscope')
   cnoreabbrev csi cs find i
   cnoreabbrev cst cs find t
 
-  command -nargs=0 Cscope cs add $VIMSRC/src/cscope.out $VIMSRC/src
+"  command -nargs=0 Cscope cs add $VIMSRC/src/cscope.out $VIMSRC/src
 
   "if filereadable("~/cscope/usrinclude/cscope.out")
   "Ugly hack to get around having to press enter
@@ -192,8 +206,8 @@ endif
 
 "----cscope end
 " System default for mappings is now the "," character
-"let mapleader = ","
-let mapleader = " "
+let mapleader = ","
+"let mapleader = " "
 
 nmap <Space><Space> :
 nmap <Space>w :w
@@ -205,7 +219,7 @@ nmap <Space>q<Space> :q!
 "let g:ctrlp_cmd = 'CtrlP'
 
 " Build the cscope database in the directory
-nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' > cscope.files<CR>
+nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.cs' > cscope.files<CR>
   \:!cscope -b -i cscope.files -f cscope.out<CR>
   \:cs reset<CR>
 
@@ -280,6 +294,12 @@ autocmd StdinReadPre * let s:std_in=1
 "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
 nmap <F8> :TagbarToggle<CR>
+
+if has('gui_running')
+    set background=light
+else
+    set background=dark
+endif
 
 "colorscheme summerfruit256
 "colorscheme solarized
@@ -382,7 +402,15 @@ map <C-\> :pyf ~/bin/clang-format.py<cr>
 
 " Make command
 "map <F12> :make|cw<CR>
-map <F12> : Make <CR>
+map <F12> : Make <CR> 
+map <S-F12> : Make <CR> <c-j> /error: <CR>
 set makeprg=make\ -C\ ~/src/WindowsFabric/src/build
 
+" Eclim tags
+map ,,g :CSearch <cr>
 
+" Quick fix window max height
+au FileType qf call AdjustWindowHeight(3, 15)
+function! AdjustWindowHeight(minheight, maxheight)
+  exe max([min([line("$"), a:maxheight]), a:minheight]) . "wincmd _"
+endfunction
