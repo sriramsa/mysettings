@@ -11,7 +11,7 @@ set secure
 syn on
 
 " Highlight col 110 with color
-"set colorcolumn=110
+set colorcolumn=160
 
 set number
 set softtabstop=4
