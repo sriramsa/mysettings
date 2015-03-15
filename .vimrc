@@ -1,5 +1,5 @@
-" This is my own VIM settings that I like. I use it for C++ and sometimes
-" Golang. Change and use as you see fit. No warranties.
+" This is my VIM settings that I like. I use it for C++ and sometimes Golang.
+" Change and use as you see fit. No warranties.
 " - sriramsh
 "
 " Tips:
@@ -29,6 +29,7 @@
 "
 " ctrl+b - Open MRU files and search by typing the name
 " ctrl+f - Open list of files in local directory and search
+" ctrl+n - Open NERDTree
 "
 " shift+tab - Go across windows
 "
@@ -41,22 +42,23 @@
 
 set exrc
 set secure
+syn on
 
 " Take .vimrc file if it is present in the working directory
 " Used for giving custom Make commands
-if filereadable(".vimrc")
+"if filereadable(".vimrc")
 "    source .vimrc
-endif
+"endif
 
 " Switch color schemes on shift+F8
-if filereadable("~/src/github/mysettings/scripts/vim_switch_scheme.vim")
-    source ~/src/github/mysettings/scripts/vim_switch_scheme.vim
-endif
+"if filereadable("~/src/github/mysettings/scripts/vim_switch_scheme.vim")
+    "source ~/src/github/mysettings/scripts/vim_switch_scheme.vim
+"endif
 
 " Syntax on, neovim seems to need it
 syntax on
 
-" Highlight col 110 with color
+" Highlight col 110 with color. To not type beyond it.
 "set colorcolumn=110
 
 " switch on line numbers on the left side
@@ -162,7 +164,6 @@ Plugin 'marijnh/tern_for_vim'
 
 " To get the > font with color below. check online to get this font
 let g:airline_powerline_fonts = 1
-
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -188,6 +189,15 @@ let g:ycm_enable_diagnostic_highlighting = 0
 let g:ycm_always_populate_location_list = 0
 let g:ycm_complete_in_strings = 1
 
+let g:ycm_register_as_syntastic_checker = 1
+let g:Show_diagnostics_ui = 0
+
+let g:ycm_enable_diagnostic_signs = 0
+let g:ycm_enable_diagnostic_highlighting = 0
+let g:ycm_always_populate_location_list = 0
+
+let g:ycm_complete_in_strings = 1
+"=====================
 "let g:SuperTabDefaultCompletionType = '<C-Tab>'
 
 " Ultisnips settings
@@ -432,7 +442,6 @@ iab teh        the
 " CLANG auto-format
 map <C-\> :pyf ~/bin/clang-format.py<cr>
 "imap <C-I> <c-o>:pyf ~/bin/clang-format.py<cr>
-
 
 " Make command. Change the build directory as per your need.
 " Preferably set in a .vimrc locally
