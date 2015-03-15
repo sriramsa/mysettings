@@ -45,7 +45,7 @@ set secure
 " Take .vimrc file if it is present in the working directory
 " Used for giving custom Make commands
 if filereadable(".vimrc")
-    source .vimrc
+"    source .vimrc
 endif
 
 " Switch color schemes on shift+F8
