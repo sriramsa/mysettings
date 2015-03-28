@@ -85,6 +85,15 @@ set novisualbell
 set t_vb=
 set tm=500
 
+" System default for mappings is now the "," character
+let mapleader = ","
+
+" Set encoding as utf8 
+set encoding=utf8
+
+" easy way to reload .vimrc
+nmap <leader>V :source $MYVIMRC<CR>
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Text, tab and indent related
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -129,22 +138,25 @@ Plugin 'gmarik/Vundle.vim'
 " The following are examples of different formats supported.
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
-Plugin 'airblade/vim-gitgutter' " Shows changed lines in leftmost column
-Plugin 'tpope/vim-fugitive'
 Plugin 'L9'
 
 " Syntastic shows errors
 Plugin 'scrooloose/syntastic'
-"Plugin 'ervandew/supertab'
+Plugin 'ervandew/supertab'
 
 Plugin 'bling/vim-airline'
 Plugin 'majutsushi/tagbar' " Tagbar on the right, use F8
 Plugin 'Valloric/YouCompleteMe' " Autocomplete et al
+"Plugin 'shougo/neocomplete'
+"Plugin 'shougo/neosnippet'
+"Plugin 'shougo/neosnippet-snippets'
 Plugin 'flazz/vim-colorschemes' " Installs almost all color schemes
-Plugin 'raimondi/delimitMate'
+"Plugin 'raimondi/delimitMate'
+Plugin 'jiangmiao/auto-pairs' " Completing paranthesis"
 Plugin 'scrooloose/nerdtree' " Navigate the file system
 Plugin 'Xuyuanp/nerdtree-git-plugin' " Git hints in nerd tree
 Plugin 'godlygeek/tabular'
+Plugin 'godlygeek/csapprox' " Make gvim-only colo schemes work in terminal 
 Plugin 'octol/vim-cpp-enhanced-highlight'
 Plugin 'EasyMotion' 
 Plugin 'tpope/vim-commentary'
@@ -152,15 +164,32 @@ Plugin 'tpope/vim-dispatch'
 Plugin 'kien/ctrlp.vim'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
-Plugin 'junegunn/goyo.vim'
+"Plugin 'junegunn/goyo.vim'
+" go 
 Plugin 'fatih/vim-go' " Golang plugins
+" Javascript
 Plugin 'jelera/vim-javascript-syntax'
 Plugin 'marijnh/tern_for_vim'
+" git
+Plugin 'gregsexton/gitv'
+Plugin 'airblade/vim-gitgutter' " Shows changed lines in leftmost column
+Plugin 'tpope/vim-fugitive'
+Plugin 'terryma/vim-expand-region'
+Plugin 'terryma/vim-multiple-cursors'
+Plugin 'suan/vim-instant-markdown'
 "Plugin 'ntpeters/vim-better-whitespace'
 "Plugin 'christoomey/vim-tmux-navigator'
 " Javascript
 "Plugin 'pangloss/vim-javascript'
 "Plugin 'bbchung/clighter'
+
+" vim-expand-region
+"map K <Plug>(expand_region_expand)
+"map J <Plug>(expand_region_shrink)
+
+"let g:multi_cursor_use_default_mapping=0
+"let g:multi_cursor_next_key='<C-i>'
+"let g:multi_cursor_quit_key='<Esc>'
 
 " To get the > font with color below. check online to get this font
 let g:airline_powerline_fonts = 1
@@ -182,8 +211,6 @@ filetype plugin indent on    " required
 let g:ycm_global_ycm_extra_conf = "~/.vim/.ycm_extra_conf.py"
 "let g:ycm_key_list_select_completion = ['<C-TAB>','<Down>']
 let g:ycm_key_list_previous_completion = ['<C-S-TAB>','<Up>']
-let g:ycm_register_as_syntastic_checker = 1
-let g:Show_diagnostics_ui = 0
 let g:ycm_enable_diagnostic_signs = 0
 let g:ycm_enable_diagnostic_highlighting = 0
 let g:ycm_always_populate_location_list = 0
@@ -219,10 +246,8 @@ let NERDTreeIgnore=[ '\.ncb$', '\.suo$', '\.vcproj\.RIMNET', '\.obj$',
                    \ '\.embed\.manifest$', '\.embed\.manifest.res$',
                    \ '\.intermediate\.manifest$', '^mt.dep$' ]
 
-" System default for mappings is now the "," character
-let mapleader = ","
-
 " Saving left-pinky from shift
+nmap <F1> /
 nmap <Space><Space> :
 nmap <Space>w :w
 nmap <Space>w<Space> :w<CR>
@@ -251,47 +276,76 @@ endif
 "colorscheme summerfruit256 " Pretty good when using putty configured for 256 colors
 "colorscheme solarized
 colo molokai
+function! GoSettings()
+    nmap <F5> :GoRun<CR>
+""    nmap ,c :GoCallers<CR>
+""    nmap ,r :GoReferrers<CR>
+ ""   nmap ,g :GoDef<CR>
+endfunction
 
-" cscope to browse through files
-if has('cscope')
-    set cscopetag cscopeverbose
+au FileType go nmap F5 <Plug>(go-run)
+au FileType go nmap <leader>gd <Plug>(go-doc)
+au FileType go nmap <leader>gr <Plug>(go-referrers)
+au FileType go nmap <leader>gre <Plug>(go-rename)
+au FileType go nmap <leader>gc <Plug>(go-callers)
+au FileType go nmap <leader>gi <Plug>(go-implements)
+au FileType go nmap <leader>d <Plug>(go-def)
+au FileType go nmap <leader>g <Plug>(go-def)
+au FileType go nmap <leader>ds <Plug>(go-def-split)
+au FileType go nmap <leader>dt <Plug>(go-def-tab)
 
-    cnoreabbrev csa cs add
-    cnoreabbrev csf cs find f
-    cnoreabbrev csk cs kill
-    cnoreabbrev csr cs reset
-    cnoreabbrev css cs find s
-    cnoreabbrev csh cs help
-    cnoreabbrev csg cs find g
-    cnoreabbrev cse cs find e
-    cnoreabbrev csi cs find i
-    cnoreabbrev cst cs find t
+" vim-go settings
+" Enable automatically setting imports
+let g:go_fmt_command = "goimports"
 
-    " load the cscope db
-    set csto=0
-    set cst
-    set nocsverb
+" Syntax highlight
+let g:go_highlight_functions = 1
+let g:go_highlight_methods = 1
+let g:go_highlight_structs = 1
+let g:go_highlight_operators = 1
+let g:go_highlight_build_constraints = 1
+"function! CSettings()
 
-    " get the headers to get to definitions for libraries
-    if filereadable("~/cscope/usrinclude/cscope.out")
-        cs add ~/cscope/usrinclude/cscope.out
+    " cscope to browse through files
+    if has('cscope')
+        set cscopetag cscopeverbose
+
+        cnoreabbrev csa cs add
+        cnoreabbrev csf cs find f
+        cnoreabbrev csk cs kill
+        cnoreabbrev csr cs reset
+        cnoreabbrev css cs find s
+        cnoreabbrev csh cs help
+        cnoreabbrev csg cs find g
+        cnoreabbrev cse cs find e
+        cnoreabbrev csi cs find i
+        cnoreabbrev cst cs find t
+
+        " load the cscope db
+        set csto=0
+        set cst
+        set nocsverb
+
+        " get the headers to get to definitions for libraries
+        if filereadable("~/cscope/usrinclude/cscope.out")
+            cs add ~/cscope/usrinclude/cscope.out
+        endif
+
+        " add any database in current directory
+        if filereadable("cscope.out")
+            cs add cscope.out
+            " else add database pointed to by environment
+        elseif $CSCOPE_DB != ""
+            cs add $CSCOPE_DB
+        endif
+        set csverb
+        set cscopeverbose
     endif
 
-    " add any database in current directory
-    if filereadable("cscope.out")
-	    cs add cscope.out
-	    " else add database pointed to by environment
-    elseif $CSCOPE_DB != ""
-	    cs add $CSCOPE_DB
-    endif
-    set csverb
-    set cscopeverbose
-endif
-
-" Build the cscope database in the directory on F10
-nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.cs' > cscope.files<CR>
-  \:!cscope -b -i cscope.files -f cscope.out<CR>
-  \:cs reset<CR>
+    "" Build the cscope database in the directory on F10
+    nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.cs' > cscope.files<CR>
+      \:!cscope -b -i cscope.files -f cscope.out<CR>
+      \:cs reset<CR>
 
     " The following maps all invoke one of the following cscope search types:
     "
@@ -303,60 +357,78 @@ nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.
     "   'f'   file:   open the filename under cursor
     "   'i'   includes: find files that include the filename under cursor
     "   'd'   called: find functions that function under cursor calls
+    nmap `s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap ,s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>s :cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap `g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap ,g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap `c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap ,c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>c :cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap `t :cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap ,t :cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>t :cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap `e :cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap ,e :cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>e :cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap `f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap ,f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap <Space>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap `i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap ,i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap <Space>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap `d :cs find d <C-R>=expand("<cword>")<CR><CR>
+    nmap ,d :cs find d <C-R>=expand("<cword>")<CR><CR>
+    nmap <Space>d :cs find d <C-R>=expand("<cword>")<CR><CR>
 
-nmap `s :cs find s <C-R>=expand("<cword>")<CR><CR>
-nmap ,s :cs find s <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>s :cs find s <C-R>=expand("<cword>")<CR><CR>
-nmap `g :cs find g <C-R>=expand("<cword>")<CR><CR>
-nmap ,g :cs find g <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>g :cs find g <C-R>=expand("<cword>")<CR><CR>
-nmap `c :cs find c <C-R>=expand("<cword>")<CR><CR>
-nmap ,c :cs find c <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>c :cs find c <C-R>=expand("<cword>")<CR><CR>
-nmap `t :cs find t <C-R>=expand("<cword>")<CR><CR>
-nmap ,t :cs find t <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>t :cs find t <C-R>=expand("<cword>")<CR><CR>
-nmap `e :cs find e <C-R>=expand("<cword>")<CR><CR>
-nmap ,e :cs find e <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>e :cs find e <C-R>=expand("<cword>")<CR><CR>
-nmap `f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap ,f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap <Space>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap `i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap ,i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap <Space>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap `d :cs find d <C-R>=expand("<cword>")<CR><CR>
-nmap ,d :cs find d <C-R>=expand("<cword>")<CR><CR>
-nmap <Space>d :cs find d <C-R>=expand("<cword>")<CR><CR>
+    " Vertical split
+    nmap `vs :vert cs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap `vg :vert cs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap `vc :vert cs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap `vt :vert cs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap `ve :vert cs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap `vf :vert cs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap `vi :vert cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap `vd :vert cs find d <C-R>=expand("<cword>")<CR><CR>
 
-" Vertical split
-nmap `vs :vert cs find s <C-R>=expand("<cword>")<CR><CR>
-nmap `vg :vert cs find g <C-R>=expand("<cword>")<CR><CR>
-nmap `vc :vert cs find c <C-R>=expand("<cword>")<CR><CR>
-nmap `vt :vert cs find t <C-R>=expand("<cword>")<CR><CR>
-nmap `ve :vert cs find e <C-R>=expand("<cword>")<CR><CR>
-nmap `vf :vert cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap `vi :vert cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap `vd :vert cs find d <C-R>=expand("<cword>")<CR><CR>
+    " Horizontal Split
+    nmap `hs :scs find s <C-R>=expand("<cword>")<CR><CR>
+    nmap `hg :scs find g <C-R>=expand("<cword>")<CR><CR>
+    nmap `hc :scs find c <C-R>=expand("<cword>")<CR><CR>
+    nmap `ht :scs find t <C-R>=expand("<cword>")<CR><CR>
+    nmap `he :scs find e <C-R>=expand("<cword>")<CR><CR>
+    nmap `hf :scs find f <C-R>=expand("<cfile>")<CR><CR>
+    nmap `hi :scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+    nmap `hd :scs find d <C-R>=expand("<cword>")<CR><CR>
 
-" Horizontal Split
-nmap `hs :scs find s <C-R>=expand("<cword>")<CR><CR>
-nmap `hg :scs find g <C-R>=expand("<cword>")<CR><CR>
-nmap `hc :scs find c <C-R>=expand("<cword>")<CR><CR>
-nmap `ht :scs find t <C-R>=expand("<cword>")<CR><CR>
-nmap `he :scs find e <C-R>=expand("<cword>")<CR><CR>
-nmap `hf :scs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap `hi :scs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
-nmap `hd :scs find d <C-R>=expand("<cword>")<CR><CR>
+    " Find all files including this file
+    nmap ;i :cs find i <C-R>=expand("%:t")<CR><CR>
+    " Make command. Change the build directory as per your need.
+    " Preferably set in a .vimrc locally
+    "map <F12> : Make <CR> 
+    map <F12> :Make <CR> <c-j> /error: <CR>
+    set makeprg=make\ -C\ build
 
-" Find all files including this file
-nmap ;i :cs find i <C-R>=expand("%:t")<CR><CR>
+    " Eclim tags. Eclim is better at getting to global definitions for C++
+    map ,,g :CSearch <cr>
+
+"endfunction
+
+" Load corresponding mappings
+augroup filetypedetect
+    au! BufNewFile,BufRead *.go call GoSettings()
+    "au! BufNewFile,BufRead *.c,*.h,*.cpp,*.hpp,*.cs call CSettings()
+augroup END
+
+autocmd BufNewFile,BufReadPost *.md set filetype=markdown
 
 " Plugin Configurations
 set laststatus=2
 
 " NERDTree Plugin configs
-map <C-n> :NERDTreeToggle<CR>
+"map <C-n> :NERDTreeToggle<CR>
+map <F4> :NERDTreeToggle<CR>
 autocmd StdinReadPre * let s:std_in=1
 "autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
@@ -377,7 +449,7 @@ map <C-b> :CtrlPMRU<CR>
 map <Space>b :CtrlPMRU<CR>
 
 " Goyo Commands
-map <C-g> :Goyo<CR>
+"map <C-g> :Goyo<CR>
 
 " Searching
 " Ignore case when searching
@@ -442,15 +514,6 @@ iab teh        the
 " CLANG auto-format
 map <C-\> :pyf ~/bin/clang-format.py<cr>
 "imap <C-I> <c-o>:pyf ~/bin/clang-format.py<cr>
-
-" Make command. Change the build directory as per your need.
-" Preferably set in a .vimrc locally
-map <F12> : Make <CR> 
-map <S-F12> : Make <CR> <c-j> /error: <CR>
-set makeprg=make\ -C\ build
-
-" Eclim tags. Eclim is better at getting to global definitions for C++
-map ,,g :CSearch <cr>
 
 " Quick fix window max height
 au FileType qf call AdjustWindowHeight(3, 15)
