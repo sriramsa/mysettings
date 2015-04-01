@@ -178,7 +178,7 @@ Plugin 'terryma/vim-expand-region'
 Plugin 'terryma/vim-multiple-cursors'
 Plugin 'suan/vim-instant-markdown'
 "Plugin 'ntpeters/vim-better-whitespace'
-"Plugin 'christoomey/vim-tmux-navigator'
+Plugin 'christoomey/vim-tmux-navigator'
 " Javascript
 "Plugin 'pangloss/vim-javascript'
 "Plugin 'bbchung/clighter'
