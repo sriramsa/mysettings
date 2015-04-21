@@ -170,6 +170,9 @@ Plugin 'fatih/vim-go' " Golang plugins
 " Javascript
 Plugin 'jelera/vim-javascript-syntax'
 Plugin 'marijnh/tern_for_vim'
+Plugin 'pangloss/vim-javascript'
+Plugin 'mattn/emmet-vim'
+"Plugin 'jaxbot/browserlink.vim'
 " git
 Plugin 'gregsexton/gitv'
 Plugin 'airblade/vim-gitgutter' " Shows changed lines in leftmost column
@@ -180,7 +183,6 @@ Plugin 'suan/vim-instant-markdown'
 "Plugin 'ntpeters/vim-better-whitespace'
 Plugin 'christoomey/vim-tmux-navigator'
 " Javascript
-"Plugin 'pangloss/vim-javascript'
 "Plugin 'bbchung/clighter'
 
 " vim-expand-region
@@ -286,10 +288,10 @@ endfunction
 au FileType go nmap F5 <Plug>(go-run)
 au FileType go nmap <leader>gd <Plug>(go-doc)
 au FileType go nmap <leader>gr <Plug>(go-referrers)
+au FileType go nmap <leader>c <Plug>(go-referrers)
 au FileType go nmap <leader>gre <Plug>(go-rename)
 au FileType go nmap <leader>gc <Plug>(go-callers)
 au FileType go nmap <leader>gi <Plug>(go-implements)
-au FileType go nmap <leader>d <Plug>(go-def)
 au FileType go nmap <leader>g <Plug>(go-def)
 au FileType go nmap <leader>ds <Plug>(go-def-split)
 au FileType go nmap <leader>dt <Plug>(go-def-tab)
