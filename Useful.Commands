@@ -1,0 +1,47 @@
+List all the files installed by a pkg
+-------------------------------------
+dpkg -L <pkgname>
+
+Show TOP for threads
+--------------------
+htop
+
+Perf  - make it run by normal user, disabling paranoid
+-----
+echo 1 > 
+
+"let the kallsyms be read by normal user"
+echo 0 > /proc/sys/kernel/kptr_restrict
+
+See all Proc and thread, policies, priorities
+ps -meo pid, tid, policy, rtprio, comm
+  wrapped in [] is for kernel threads, otherwise it is user space
+
+  PID1 = TID1 for the main first thread
+  PID1 = TID2 second thread 
+
+Limits 
+$ ulimit -a
+
+Most information about the process
+$ time <option, see man>
+
+Look at open ports:(DONT RUN ON NETWORK, YOU MIGHT GET SHUT DOWN)
+$ nmap localhost
+
+Look at network traffic
+$ tcpdump -q -i wlan0
+
+
+Looking at network :
+$ iptraf
+or 
+$ sniffit
+or
+$ netstat
+
+SIMULATE SLOW SPEEDS:
+---------------------
+Use 'tc' to slow down.
+e.g. to slow interface lo
+$ tc qdisc add dev lo root netem delay 100ms 20ms
