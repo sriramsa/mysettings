@@ -45,3 +45,6 @@ SIMULATE SLOW SPEEDS:
 Use 'tc' to slow down.
 e.g. to slow interface lo
 $ tc qdisc add dev lo root netem delay 100ms 20ms
+
+Get Current Script Directory:
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )

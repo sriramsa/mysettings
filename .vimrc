@@ -29,7 +29,7 @@
 "
 " ctrl+b - Open MRU files and search by typing the name
 " ctrl+f - Open list of files in local directory and search
-" ctrl+n - Open NERDTree
+" F4 - Open NERDTree
 "
 " shift+tab - Go across windows
 "
@@ -38,11 +38,13 @@
 " ,s - find all instances of the symbal under cursor
 " ,t - find text under cursor
 " Lot more, see mappings below
+"
+" Python:
+" :PymodeLintAuto - Auto linting
 " """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 set exrc
 set secure
-syn on
 
 " Take .vimrc file if it is present in the working directory
 " Used for giving custom Make commands
@@ -90,6 +92,9 @@ let mapleader = ","
 
 " Set encoding as utf8 
 set encoding=utf8
+
+" Don't match parenthesis 
+let loaded_matchparen = 0
 
 " easy way to reload .vimrc
 nmap <leader>V :source $MYVIMRC<CR>
@@ -147,11 +152,13 @@ Plugin 'ervandew/supertab'
 Plugin 'bling/vim-airline'
 Plugin 'majutsushi/tagbar' " Tagbar on the right, use F8
 Plugin 'Valloric/YouCompleteMe' " Autocomplete et al
+Plugin 'vim-perl/vim-perl' " perl
 "Plugin 'shougo/neocomplete'
 "Plugin 'shougo/neosnippet'
 "Plugin 'shougo/neosnippet-snippets'
 Plugin 'flazz/vim-colorschemes' " Installs almost all color schemes
 "Plugin 'raimondi/delimitMate'
+Plugin 'rhysd/vim-clang-format'
 Plugin 'jiangmiao/auto-pairs' " Completing paranthesis"
 Plugin 'scrooloose/nerdtree' " Navigate the file system
 Plugin 'Xuyuanp/nerdtree-git-plugin' " Git hints in nerd tree
@@ -161,6 +168,7 @@ Plugin 'octol/vim-cpp-enhanced-highlight'
 Plugin 'EasyMotion' 
 Plugin 'tpope/vim-commentary'
 Plugin 'tpope/vim-dispatch'
+Plugin 'tpope/vim-surround'
 Plugin 'kien/ctrlp.vim'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
@@ -175,7 +183,7 @@ Plugin 'mattn/emmet-vim'
 "Plugin 'jaxbot/browserlink.vim'
 " git
 Plugin 'gregsexton/gitv'
-Plugin 'airblade/vim-gitgutter' " Shows changed lines in leftmost column
+"Plugin 'airblade/vim-gitgutter' " Shows changed lines in leftmost column
 Plugin 'tpope/vim-fugitive'
 Plugin 'terryma/vim-expand-region'
 Plugin 'terryma/vim-multiple-cursors'
@@ -196,6 +204,10 @@ Plugin 'davidhalter/jedi-vim'
 "let g:multi_cursor_next_key='<C-i>'
 "let g:multi_cursor_quit_key='<Esc>'
 
+" Clang format settings
+let g:clang_format#command="clang-format-3.6"
+let g:clang_format#code_style="llvm"
+
 " Python settings
 let python_highlight_all = 1
 " Python-mode
@@ -212,6 +224,7 @@ let python_highlight_all = 1
 " " [M            Jump on previous class or method (normal, visual, operator modes)
 " " ]M            Jump on next class or method (normal, visual, operator modes)
 let g:pymode_rope = 0
+let g:pymode_rope_rename_bind = '<Leader>cw'
 "
 "" Documentation
 let g:pymode_doc = 1
@@ -219,7 +232,8 @@ let g:pymode_doc_key = 'K'
 
 "Linting
 let g:pymode_lint = 1
-let g:pymode_lint_checker = "pyflakes,pep8"
+"let g:pymode_lint_checker = "pyflakes,pep8,pylint"
+let g:pymode_lint_checker = "pep8,pylint"
 
 "" Auto check on save
 let g:pymode_lint_write = 1
@@ -239,6 +253,9 @@ let g:pymode_syntax_space_errors = g:pymode_syntax_all
 
 " Don't autofold code
  let g:pymode_folding = 0
+
+" Max line length
+ let g:pymode_options_max_line_length = 100
 
 " Dont use YCM for python completion
 "let g:ycm_filetype_specific_completion_to_disable = { 'python' : 1  }
@@ -410,7 +427,8 @@ let g:go_highlight_build_constraints = 1
     endif
 
     "" Build the cscope database in the directory on F10
-    nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.cs' > cscope.files<CR>
+    "nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.cs' > cscope.files<CR>
+    nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' > cscope.files<CR>
       \:!cscope -b -i cscope.files -f cscope.out<CR>
       \:cs reset<CR>
 
