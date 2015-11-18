@@ -172,6 +172,7 @@ Plugin 'tpope/vim-surround'
 Plugin 'kien/ctrlp.vim'
 Plugin 'SirVer/ultisnips'
 Plugin 'honza/vim-snippets'
+Plugin 'rust-lang/rust.vim'
 "Plugin 'junegunn/goyo.vim'
 " go 
 Plugin 'fatih/vim-go' " Golang plugins
@@ -195,6 +196,7 @@ Plugin 'klen/python-mode'
 Plugin 'davidhalter/jedi-vim'
 " Javascript
 "Plugin 'bbchung/clighter'
+"Plugin 'jeaye/color_coded'
 
 " vim-expand-region
 "map K <Plug>(expand_region_expand)

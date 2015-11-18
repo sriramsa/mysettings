@@ -11,7 +11,8 @@ find . -iname "*.idl" >>cscope.files
 find . -iname "*.mk" >>cscope.files
 find . -iname "*.inc" >>cscope.files
 
-cscope -b -i cscope.files -f cscope.out
+#cscope -b -i cscope.files -f cscope.out
+cscope -b -q -i cscope.files
 
 
 #nmap <F10> :!find . -iname '*.c' -o -iname '*.cpp' -o -iname '*.h' -o -iname '*.hpp' > cscope.files<CR>
