@@ -10,7 +10,7 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git dirhistory jump github golang docker vim-interaction common-aliases lol ubuntu tmuxinator) 
+plugins=(git dirhistory jump github golang docker vim-interaction common-aliases ubuntu tmuxinator python pyenv) 
 
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
@@ -20,4 +20,5 @@ set -o vi && export KEYTIMEOUT=1 # delay between ESC and / is 0.1 seconds. Neede
 
 export GOPATH=$HOME/src/go
 export GOBIN=$HOME/src/go/bin
+
 fortune

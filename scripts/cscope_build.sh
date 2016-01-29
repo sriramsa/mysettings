@@ -3,7 +3,7 @@
 set -x
 CURR_DIR=`pwd`
 find . -iname "*.[ch]" >cscope.files
-find /usr/include -iname "*.[ch]" >cscope.files
+find /usr/include -iname "*.[ch]" >>cscope.files
 find /usr/include -iname "*.hpp" >>cscope.files
 find . -iname "*.cpp" >>cscope.files
 find . -iname "*.hpp" >>cscope.files
