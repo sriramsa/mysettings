@@ -10,12 +10,15 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git dirhistory jump github golang docker vim-interaction common-aliases ubuntu tmuxinator python pyenv) 
+plugins=(git colored-man-pages command-not-found dirhistory jump github golang docker vim-interaction common-aliases ubuntu tmuxinator python pyenv vi-mode) 
+
+#source ~/.bin/tmuxinator.zsh
 
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias tmux="tmux -2"
+alias ts="tail -f /var/log/syslog"
 set -o vi && export KEYTIMEOUT=1 # delay between ESC and / is 0.1 seconds. Needed for vi search.
 
 export GOPATH=$HOME/src/go

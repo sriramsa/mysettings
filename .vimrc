@@ -130,6 +130,9 @@ set wrap
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
+" Allow saving files as sudo
+cmap w!! w !sudo tee > /dev/null %
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugins needed, install with PluginInstall the first time
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -207,8 +210,12 @@ Plugin 'davidhalter/jedi-vim'
 "let g:multi_cursor_quit_key='<Esc>'
 
 " Clang format settings
-let g:clang_format#command="clang-format-3.6"
-let g:clang_format#code_style="llvm"
+let g:clang_format#command="clang-format-3.7"
+"let g:clang_format#code_style="llvm"
+let g:clang_format#style_options= {
+            \ "BasedOnStyle" : "Google",
+            \ "Standard" : "C++11",
+            \ "ColumnLimit": 92 }
 
 " Python settings
 let python_highlight_all = 1
