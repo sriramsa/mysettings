@@ -371,7 +371,8 @@ endif
 colo molokai
 function! GoSettings()
     nmap <F5> :GoRun<CR>
-""    nmap ,c :GoCallers<CR>
+    set filetype=go
+    nmap ,c :GoCallers<CR>
 ""    nmap ,r :GoReferrers<CR>
  ""   nmap ,g :GoDef<CR>
 endfunction
@@ -516,6 +517,7 @@ augroup filetypedetect
 augroup END
 
 autocmd BufNewFile,BufReadPost *.md set filetype=markdown
+"autocmd BufNewFile,BufReadPost *.go set filetype=go
 
 " Plugin Configurations
 set laststatus=2
