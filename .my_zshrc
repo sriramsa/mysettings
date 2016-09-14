@@ -1,7 +1,7 @@
 ZSH_THEME="pygmalion"
 
 # Uncomment the following line to change how often to auto-update (in days).
-export UPDATE_ZSH_DAYS=1
+export UPDATE_ZSH_DAYS=5
 
 # Uncomment the following line to display red dots whilst waiting for completion.
 COMPLETION_WAITING_DOTS="true"
@@ -18,7 +18,10 @@ plugins=(git colored-man-pages command-not-found dirhistory jump github golang d
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias tmux="tmux -2"
+alias rm='rm -i'
 alias ts="tail -f /var/log/syslog"
+
+export EDITOR='vim'
 set -o vi && export KEYTIMEOUT=1 # delay between ESC and / is 0.1 seconds. Needed for vi search.
 
 export GOPATH=$HOME/src/go

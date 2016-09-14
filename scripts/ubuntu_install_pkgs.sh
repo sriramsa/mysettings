@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -e 
+#!/usr/bin/env bash
 
 # Packages needed to keep me sane
 sudo apt-get install -y vim curl cmake fortunes
