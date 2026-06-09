@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+#
+# devbox - one command to run my Azure dev VM workflow.
+#
+# Runs on BOTH my Mac and the VM; it auto-detects which by asking the Azure
+# Instance Metadata Service (only reachable from on the VM).
+#
+#   devbox up | start      power on the VM                              [Mac]
+#   devbox down            DEALLOCATE the VM (actually stops billing)   [Mac/VM]
+#   devbox status          power state + are-you-being-charged note     [Mac]
+#   devbox code [project]  start VM -> wait for SSH -> ensure a remote-
+#                          controllable Claude tmux session -> open VS  [Mac]
+#                          Code Remote into the project
+#   devbox claude          ensure + attach the Claude tmux session      [VM]
+#   devbox ssh             ssh into the VM                              [Mac]
+#   devbox autoshutdown    show the Azure auto-shutdown schedule        [Mac]
+#   devbox help
+#
+# Config (Mac only) lives OUTSIDE this (public) repo in ~/.config/devbox.env.
+# On the VM, resource group / name / subscription come free from IMDS.
+# See DEVBOX.md and devbox.env.example.
+
+# ---------------------------------------------------------------------------
+# External commands go through thin wrappers so the test suite can mock them.
+# ---------------------------------------------------------------------------
+_curl()  { command curl "$@"; }
+_az()    { command az "$@"; }
+_ssh()   { command ssh "$@"; }
+_tmux()  { command tmux "$@"; }
+_code()  { command code "$@"; }
+_sleep() { sleep "$@"; }
+
+# Single IMDS leaf field as plain text ("" off-VM). -m 1 so it fails fast on Mac.
+imds_field() {
+  _curl -s -m 1 -H "Metadata:true" \
+    "http://169.254.169.254/metadata/instance/compute/$1?api-version=2021-02-01&format=text" \
+    2>/dev/null
+}
+
+SESSION="claude"   # tmux session name for the Claude run
+
+# Globals filled in by detect_context / load_mac_config
+CONTEXT=""; RG=""; VM=""; SUB=""; SSH_HOST=""; REMOTE_HOME=""; DEFAULT_PROJECT=""
+az_sub=()
+
+# ---------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------
+die()      { printf 'devbox: %s\n' "$*" >&2; exit 1; }
+info()     { printf '%s\n' "$*"; }
+need_cmd() { command -v "$1" >/dev/null 2>&1 || die "'$1' not found.${2:+ $2}"; }
+
+guard_mac() { [ "$CONTEXT" = "mac" ] || die "'devbox $1' runs on your Mac, not the VM."; }
+guard_vm()  { [ "$CONTEXT" = "vm" ]  || die "'devbox $1' runs on the VM, not your Mac."; }
+
+compute_az_sub() { az_sub=(); [ -n "${SUB:-}" ] && az_sub=(--subscription "$SUB"); }
+
+# ---------------------------------------------------------------------------
+# Context detection + config
+# ---------------------------------------------------------------------------
+detect_context() {
+  local name; name="$(imds_field name)"
+  if [ -n "$name" ]; then
+    CONTEXT="vm"
+    VM="$name"
+    RG="$(imds_field resourceGroupName)"
+    SUB="$(imds_field subscriptionId)"
+    REMOTE_HOME="$HOME"
+    compute_az_sub
+  else
+    CONTEXT="mac"
+  fi
+}
+
+# Mac-only: load real values from the untracked config file.
+load_mac_config() {
+  local cfg="${DEVBOX_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/devbox.env}"
+  [ -f "$cfg" ] || die "No config at $cfg. Copy devbox.env.example there and fill it in."
+  # shellcheck disable=SC1090
+  . "$cfg"
+  RG="${DEVBOX_RG:-}"; VM="${DEVBOX_VM:-}"; SUB="${DEVBOX_SUB:-}"
+  SSH_HOST="${DEVBOX_SSH:-}"; REMOTE_HOME="${DEVBOX_REMOTE_HOME:-}"
+  DEFAULT_PROJECT="${DEVBOX_DEFAULT_PROJECT:-}"
+  [ -n "$RG" ] && [ -n "$VM" ] || die "DEVBOX_RG and DEVBOX_VM must be set in $cfg."
+  compute_az_sub
+}
+
+mac_setup() { load_mac_config; }
+
+require_az_login() {
+  need_cmd az "Install the Azure CLI."
+  _az account show >/dev/null 2>&1 || die "Not logged in to Azure. Run: az login"
+}
+
+# ---------------------------------------------------------------------------
+# Azure state
+# ---------------------------------------------------------------------------
+power_state() {
+  _az vm get-instance-view -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} \
+    --query "instanceView.statuses[?starts_with(code, 'PowerState')].code | [0]" \
+    -o tsv 2>/dev/null
+}
+
+# Pure: map a PowerState string to a human/billing note (used by status; testable).
+billing_note() {
+  case "$1" in
+    *running*)     echo "RUNNING - being charged for compute";;
+    *deallocated*) echo "DEALLOCATED - not being charged for compute";;
+    *stopped*)     echo "STOPPED (allocated) - STILL being charged! run 'devbox down' to deallocate";;
+    "")            echo "unknown - could not read power state (are you logged in?)";;
+    *)             echo "$1";;
+  esac
+}
+
+# Pure: build the VS Code remote folder URI (testable).
+remote_uri() { printf 'vscode-remote://ssh-remote+%s%s/src/%s' "$1" "$2" "$3"; }
+
+# ---------------------------------------------------------------------------
+# Readiness probes
+# ---------------------------------------------------------------------------
+# Real readiness = a command actually runs over SSH (port-open is not enough,
+# and a restarted VM with a dynamic IP only resolves via its DNS alias).
+wait_for_ssh() {
+  local i=0 max=24   # 24 * 5s = 120s
+  while [ "$i" -lt "$max" ]; do
+    if _ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
+            "$SSH_HOST" true 2>/dev/null; then
+      return 0
+    fi
+    i=$((i + 1)); _sleep 5
+  done
+  return 1
+}
+
+# Positive readiness for Claude's TUI. Markers are heuristic and may need
+# tuning to your Claude Code version - the manual fallback keeps us safe.
+wait_for_claude_ready() {
+  local i=0 max=25 cur
+  while [ "$i" -lt "$max" ]; do
+    cur="$(_tmux capture-pane -p -t "$SESSION" 2>/dev/null)"
+    if printf '%s' "$cur" | grep -Eq 'for shortcuts|Welcome to Claude|esc to interrupt|^ *> '; then
+      return 0
+    fi
+    i=$((i + 1)); _sleep 1
+  done
+  return 1
+}
+
+verify_remote_control() {
+  _tmux capture-pane -p -t "$SESSION" 2>/dev/null \
+    | grep -Eqi 'remote.control|paired|on your phone|mobile'
+}
+
+# ---------------------------------------------------------------------------
+# Claude session (runs on the VM)
+# ---------------------------------------------------------------------------
+# Ensure a detached, remote-controllable Claude session exists. Idempotent:
+# create-if-absent (tolerating a lost race), and fire /remote-control exactly
+# once, tracked by a tmux env marker rather than mere session existence.
+ensure_claude() {
+  need_cmd tmux
+  if ! _tmux has-session -t "$SESSION" 2>/dev/null; then
+    info "Creating persistent '$SESSION' session..."
+    _tmux new-session -d -s "$SESSION" "zsh -lc claude" 2>/dev/null || true
+  fi
+
+  if [ "$(_tmux show-environment -t "$SESSION" DEVBOX_RC_DONE 2>/dev/null)" = "DEVBOX_RC_DONE=1" ]; then
+    return 0   # already paired
+  fi
+
+  if ! wait_for_claude_ready; then
+    info "Claude isn't ready yet. Attach with 'devbox claude' and run /remote-control manually."
+    return 0
+  fi
+
+  # Escape first to clear any partial input / dismiss menus, then send the
+  # command literally (-l) and Enter as a separate keystroke.
+  _tmux send-keys -t "$SESSION" Escape;        _sleep 0.3
+  _tmux send-keys -t "$SESSION" -l '/remote-control'; _sleep 0.3
+  _tmux send-keys -t "$SESSION" Enter;         _sleep 1
+
+  if verify_remote_control; then
+    _tmux set-environment -t "$SESSION" DEVBOX_RC_DONE 1
+    info "Remote-control enabled - reachable from your phone."
+  else
+    info "Could not confirm remote-control. Attach with 'devbox claude' and run /remote-control manually."
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+cmd_up() {
+  guard_mac up; mac_setup; require_az_login
+  case "$(power_state)" in
+    *running*) info "devbox is already running."; return 0;;
+  esac
+  info "Starting devbox..."
+  _az vm start -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} -o none
+  info "devbox is up."
+}
+
+cmd_down() {
+  if [ "$CONTEXT" = "vm" ]; then
+    need_cmd az "Azure CLI missing on the VM."
+    info "Authenticating via managed identity..."
+    _az login --identity -o none 2>/dev/null \
+      || die "Managed identity login failed. Run devbox-bootstrap-identity.sh on your Mac once."
+    info "Deallocating this VM - your session will drop shortly. Bye."
+    # --no-wait: the control-plane request returns before the host dies; we
+    # can't observe completion from here, so exit code is not meaningful.
+    _az vm deallocate -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} --no-wait -o none || true
+  else
+    mac_setup; require_az_login
+    case "$(power_state)" in
+      *deallocated*) info "devbox is already deallocated (not being charged)."; return 0;;
+    esac
+    info "Deallocating devbox..."
+    _az vm deallocate -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} --no-wait -o none
+    info "Deallocation requested. Compute charges stop once it completes."
+  fi
+}
+
+cmd_status() {
+  guard_mac status; mac_setup; require_az_login
+  local s; s="$(power_state)"
+  info "devbox: ${s:-?}"
+  info "  -> $(billing_note "$s")"
+}
+
+cmd_code() {
+  guard_mac code; mac_setup; require_az_login
+  [ -n "$SSH_HOST" ]    || die "DEVBOX_SSH not set in your config."
+  [ -n "$REMOTE_HOME" ] || die "DEVBOX_REMOTE_HOME not set in your config."
+  need_cmd ssh
+  need_cmd code "Run VS Code's 'Shell Command: Install code in PATH'."
+  local project="${1:-$DEFAULT_PROJECT}"
+  [ -n "$project" ] || die "No project given and DEVBOX_DEFAULT_PROJECT is unset."
+
+  case "$(power_state)" in
+    *running*) : ;;
+    *) info "Starting devbox..."
+       _az vm start -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} --no-wait -o none;;
+  esac
+
+  info "Waiting for SSH..."
+  wait_for_ssh || die "devbox did not become SSH-ready within 120s."
+
+  info "Ensuring Claude session..."
+  _ssh "$SSH_HOST" 'zsh -lc "devbox _ensure-claude"' \
+    || info "Warning: could not ensure the Claude session remotely; run 'devbox claude' on the VM."
+
+  local uri; uri="$(remote_uri "$SSH_HOST" "$REMOTE_HOME" "$project")"
+  info "Opening VS Code -> $project"
+  _code --folder-uri "$uri"
+}
+
+cmd_claude() {
+  guard_vm claude
+  ensure_claude
+  _tmux attach -t "$SESSION"
+}
+
+cmd_ssh() {
+  guard_mac ssh; mac_setup
+  [ -n "$SSH_HOST" ] || die "DEVBOX_SSH not set in your config."
+  need_cmd ssh
+  _ssh "$SSH_HOST"
+}
+
+cmd_autoshutdown() {
+  guard_mac autoshutdown; mac_setup; require_az_login
+  _az resource show -g "$RG" --resource-type microsoft.devtestlab/schedules \
+     -n "shutdown-computevm-$VM" ${az_sub[@]+"${az_sub[@]}"} \
+     --query "{status:properties.status, time:properties.dailyRecurrence.time, timezone:properties.timeZoneId, notify:properties.notificationSettings.status}" \
+     -o table 2>/dev/null \
+     || die "No auto-shutdown schedule found for $VM (or insufficient permissions)."
+}
+
+cmd_help() {
+  cat <<'EOF'
+devbox - control your Azure dev VM and Claude session
+
+  devbox up | start      power on the VM                          [Mac]
+  devbox down            deallocate the VM (stops billing)        [Mac/VM]
+  devbox status          power state + billing note               [Mac]
+  devbox code [project]  start VM, ensure Claude session, open    [Mac]
+                         VS Code Remote into the project
+  devbox claude          ensure + attach the Claude session       [VM]
+  devbox ssh             ssh into the VM                          [Mac]
+  devbox autoshutdown    show the auto-shutdown schedule          [Mac]
+  devbox help            this help
+
+Config (Mac): ~/.config/devbox.env  (see devbox.env.example)
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+main() {
+  local cmd="${1:-help}"; shift 2>/dev/null || true
+
+  case "$cmd" in
+    help|-h|--help) cmd_help; return 0;;
+  esac
+
+  detect_context
+
+  case "$cmd" in
+    up|start)      cmd_up "$@";;
+    down)          cmd_down "$@";;
+    status)        cmd_status "$@";;
+    code)          cmd_code "$@";;
+    claude)        cmd_claude "$@";;
+    ssh)           cmd_ssh "$@";;
+    autoshutdown)  cmd_autoshutdown "$@";;
+    _ensure-claude) guard_vm _ensure-claude; ensure_claude;;   # internal, used by 'code'
+    *) printf "devbox: unknown command '%s'\n\n" "$cmd" >&2; cmd_help >&2; return 2;;
+  esac
+}
+
+# Only run when executed, not when sourced (the test suite sources this).
+if [ "${BASH_SOURCE[0]:-$0}" = "${0}" ]; then
+  set -euo pipefail
+  main "$@"
+fi

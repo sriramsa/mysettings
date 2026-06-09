@@ -1,0 +1,4 @@
+# Local, machine-specific config — never commit real values
+*.env
+!scripts/devbox.env.example
+.config/
