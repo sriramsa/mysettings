@@ -1,0 +1,11 @@
+#cloud-config
+# Minimal first-boot step: install git, clone the dotfiles repo, and hand off to
+# provision/bootstrap-devbox.sh (which installs everything else). Keeping the
+# logic in the repo means it's debuggable and re-runnable, not buried here.
+package_update: true
+packages:
+  - git
+
+runcmd:
+  - su - ${admin} -c 'git clone ${repo_url} ~/src/mysettings || true'
+  - su - ${admin} -c 'bash ~/src/mysettings/provision/bootstrap-devbox.sh' > /var/log/devbox-bootstrap.log 2>&1

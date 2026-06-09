@@ -2,3 +2,13 @@
 *.env
 !scripts/devbox.env.example
 .config/
+
+# Terraform — state and tfvars hold identifiers/secrets
+provision/.terraform/
+provision/.terraform.lock.hcl
+provision/*.tfstate
+provision/*.tfstate.*
+provision/*.tfvars
+!provision/terraform.tfvars.example
+crash.log
+crash.*.log

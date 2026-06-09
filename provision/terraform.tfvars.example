@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars and fill in YOUR values. Do NOT commit terraform.tfvars
+# (it and the *.tfstate files contain identifiers/secrets — both are gitignored).
+
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+resource_group_name = "mydev-rg"
+location            = "westus2"
+vm_name             = "mydevbox"
+admin_username      = "youruser"
+ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+dns_label           = "my-unique-devbox-label"   # -> <label>.<region>.cloudapp.azure.com
+repo_url            = "https://github.com/youruser/mysettings.git"
+autoshutdown_email  = "you@example.com"
+
+# Optional overrides (defaults shown):
+# vm_size                   = "Standard_B4ms"
+# os_disk_type              = "StandardSSD_LRS"
+# ssh_source_address        = "*"          # set to "<your-ip>/32" to lock SSH to you
+# autoshutdown_time         = "2300"
+# autoshutdown_timezone     = "Pacific Standard Time"
+# autoshutdown_warn_minutes = 30
