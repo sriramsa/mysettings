@@ -91,6 +91,17 @@ The `/remote-control` auto-fire is best-effort (it types into Claude's TUI). If
 it can't confirm pairing it tells you to attach (`devbox claude`) and run
 `/remote-control` yourself — one keystroke.
 
+## Startup output
+
+`devbox up` / `devbox code` print **month-to-date spend for the whole
+subscription** (all resources, not just devbox). Set `DEVBOX_MONTHLY_CREDIT`
+(e.g. `150` for VS Enterprise) to also see remaining credit — note Azure has no
+API for the actual credit *balance* on these subs, so it's derived as
+`credit - spend`.
+
+`devbox code` and `devbox claude` always **reuse** a Claude session that's
+already running (they never spawn a duplicate) and say so when they do.
+
 ## Tests
 
 ```sh

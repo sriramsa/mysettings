@@ -124,6 +124,31 @@ billing_note() {
 # Pure: build the VS Code remote folder URI (testable).
 remote_uri() { printf 'vscode-remote://ssh-remote+%s%s/src/%s' "$1" "$2" "$3"; }
 
+# Best-effort startup line: month-to-date spend for the subscription, and the
+# remaining credit if DEVBOX_MONTHLY_CREDIT is set. Azure does not expose the
+# actual credit BALANCE via API for VS/MSDN credit subs, so we derive it from
+# spend. Never fails startup (returns 0 on any hiccup).
+print_credits() {
+  command -v az >/dev/null 2>&1 || return 0
+  local sub="${SUB:-}"
+  [ -n "$sub" ] || sub="$(_az account show --query id -o tsv 2>/dev/null)"
+  [ -n "$sub" ] || return 0
+  local body row spent cur
+  body='{"type":"ActualCost","timeframe":"MonthToDate","dataset":{"granularity":"None","aggregation":{"totalCost":{"name":"PreTaxCost","function":"Sum"}}}}'
+  row="$(_az rest --method post \
+      --url "https://management.azure.com/subscriptions/$sub/providers/Microsoft.CostManagement/query?api-version=2023-03-01" \
+      --body "$body" --query 'properties.rows[0]' -o tsv 2>/dev/null)" || return 0
+  spent="$(printf '%s' "$row" | awk '{print $1}')"
+  cur="$(printf '%s' "$row" | awk '{print $2}')"
+  [ -n "$spent" ] || return 0
+  if [ -n "${DEVBOX_MONTHLY_CREDIT:-}" ]; then
+    local rem; rem="$(awk -v c="$DEVBOX_MONTHLY_CREDIT" -v s="$spent" 'BEGIN{printf "%.2f", c - s}')"
+    info "Azure: $(printf '%.2f' "$spent") $cur spent this month - ~$rem of $DEVBOX_MONTHLY_CREDIT $cur credit left"
+  else
+    info "Azure: $(printf '%.2f' "$spent") $cur spent this month  (set DEVBOX_MONTHLY_CREDIT to see remaining)"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Readiness probes
 # ---------------------------------------------------------------------------
@@ -171,6 +196,8 @@ ensure_claude() {
   if ! _tmux has-session -t "$SESSION" 2>/dev/null; then
     info "Creating persistent '$SESSION' session..."
     _tmux new-session -d -s "$SESSION" "zsh -lc claude" 2>/dev/null || true
+  else
+    info "Found a running '$SESSION' session - reusing it."
   fi
 
   if [ "$(_tmux show-environment -t "$SESSION" DEVBOX_RC_DONE 2>/dev/null)" = "DEVBOX_RC_DONE=1" ]; then
@@ -201,6 +228,7 @@ ensure_claude() {
 # ---------------------------------------------------------------------------
 cmd_up() {
   guard_mac up; mac_setup; require_az_login
+  print_credits
   case "$(power_state)" in
     *running*) info "devbox is already running."; return 0;;
   esac
@@ -241,6 +269,7 @@ cmd_status() {
 
 cmd_code() {
   guard_mac code; mac_setup; require_az_login
+  print_credits
   [ -n "$SSH_HOST" ]    || die "DEVBOX_SSH not set in your config."
   [ -n "$REMOTE_HOME" ] || die "DEVBOX_REMOTE_HOME not set in your config."
   need_cmd ssh

@@ -171,8 +171,9 @@ _tmux() {
   esac
   return 0
 }
-reset_calls; ( ensure_claude ) >/dev/null 2>&1
+reset_calls; out="$(out_of ensure_claude)"
 assert_missing "ensure does not re-fire when marker set" "$(calls)" "send-keys"
+assert_contains "ensure announces it is reusing the running session" "$out" "reusing"
 
 # Case C: present but never paired, not ready -> no send-keys, safe fallback
 _tmux() {
@@ -187,6 +188,26 @@ _tmux() {
 reset_calls; out="$(out_of ensure_claude)"
 assert_missing "ensure does not blind-fire when not ready" "$(calls)" "send-keys"
 assert_contains "ensure tells user to run it manually" "$out" "manually"
+
+echo "== credits (subscription-wide spend) =="
+as_mac; SUB="sub1"
+_az() {
+  log_call "az $*"
+  case "$*" in
+    *"CostManagement/query"*) printf '3.7986\tUSD\n';;
+    *"account show"*) echo "sub1";;
+  esac
+  return 0
+}
+unset DEVBOX_MONTHLY_CREDIT 2>/dev/null || true
+reset_calls; out="$(out_of print_credits)"
+assert_contains "credits: shows month-to-date spend (rounded)" "$out" "3.80"
+assert_contains "credits: shows currency" "$out" "USD"
+assert_contains "credits: queries at SUBSCRIPTION scope (all resources)" "$(calls)" "subscriptions/sub1/providers/Microsoft.CostManagement"
+DEVBOX_MONTHLY_CREDIT=150
+out="$(out_of print_credits)"
+assert_contains "credits: shows remaining when DEVBOX_MONTHLY_CREDIT set" "$out" "146.20"
+unset DEVBOX_MONTHLY_CREDIT
 
 echo "== dispatch =="
 imds_field() { echo ""; }   # behave as Mac for dispatch
