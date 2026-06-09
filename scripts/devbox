@@ -37,6 +37,15 @@ imds_field() {
     2>/dev/null
 }
 
+# Managed-identity access token for Azure Resource Manager (VM-side only).
+# Used to deallocate self without 'az login --identity' (which would swap the
+# interactive az context). Token is a JWT with no embedded quotes, so sed is safe.
+imds_token() {
+  _curl -s -m 5 -H "Metadata:true" \
+    "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://management.azure.com/" \
+    2>/dev/null | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p'
+}
+
 SESSION="claude"   # tmux session name for the Claude run
 
 # Globals filled in by detect_context / load_mac_config
@@ -202,14 +211,16 @@ cmd_up() {
 
 cmd_down() {
   if [ "$CONTEXT" = "vm" ]; then
-    need_cmd az "Azure CLI missing on the VM."
-    info "Authenticating via managed identity..."
-    _az login --identity -o none 2>/dev/null \
-      || die "Managed identity login failed. Run devbox-bootstrap-identity.sh on your Mac once."
-    info "Deallocating this VM - your session will drop shortly. Bye."
-    # --no-wait: the control-plane request returns before the host dies; we
-    # can't observe completion from here, so exit code is not meaningful.
-    _az vm deallocate -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} --no-wait -o none || true
+    need_cmd curl
+    local tok; tok="$(imds_token)"
+    [ -n "$tok" ] || die "No managed-identity token from IMDS. Assign the identity first (run devbox-bootstrap-identity.sh on your Mac, or 'az vm identity assign')."
+    info "Deallocating this VM via managed identity - your session will drop shortly. Bye."
+    # Direct ARM REST call with the identity's IMDS token: no 'az login', so your
+    # interactive az context is left untouched. Returns 202 Accepted; we don't
+    # wait (the host dies), so the result isn't observable from here.
+    _curl -s -X POST -H "Authorization: Bearer $tok" -H "Content-Length: 0" \
+      "https://management.azure.com/subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.Compute/virtualMachines/$VM/deallocate?api-version=2023-07-01" \
+      >/dev/null 2>&1 || true
   else
     mac_setup; require_az_login
     case "$(power_state)" in

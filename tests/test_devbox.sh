@@ -126,13 +126,24 @@ _az() { log_call "az $*"; case "$*" in *"account show"*) return 0;; *"get-instan
 reset_calls; ( cmd_down ) >/dev/null 2>&1
 assert_missing "mac down skips when already deallocated" "$(calls)" "vm deallocate"
 
-echo "== down: vm path (managed identity) =="
+echo "== down: vm path (managed identity, REST - no az login) =="
 as_vm
-_az() { log_call "az $*"; return 0; }
+_curl() {
+  log_call "curl $*"
+  case "$*" in *"identity/oauth2/token"*) echo '{"access_token":"TOK123","token_type":"Bearer"}';; esac
+  return 0
+}
+_az() { log_call "az $*"; return 0; }   # must NOT be used on the VM down path
 reset_calls; ( cmd_down ) >/dev/null 2>&1
-assert_contains "vm down logs in with identity first" "$(calls)" "az login --identity"
-assert_contains "vm down then deallocates self" "$(calls)" "az vm deallocate -g rg1 -n vm1"
-assert_contains "vm down uses --no-wait" "$(calls)" "--no-wait"
+assert_contains "vm down fetches MI token from IMDS" "$(calls)" "identity/oauth2/token"
+assert_contains "vm down POSTs to the deallocate endpoint" "$(calls)" "providers/Microsoft.Compute/virtualMachines/vm1/deallocate"
+assert_contains "vm down sends the bearer token" "$(calls)" "Authorization: Bearer TOK123"
+assert_missing  "vm down does NOT use 'az login'" "$(calls)" "az login"
+# token missing -> clean failure, no deallocate POST
+_curl() { log_call "curl $*"; return 0; }   # token endpoint returns nothing
+reset_calls; out="$(out_of cmd_down)"
+assert_contains "vm down errors clearly when no token" "$out" "managed-identity token"
+assert_missing  "vm down skips deallocate when no token" "$(calls)" "/deallocate"
 
 echo "== ensure_claude idempotency =="
 as_vm
