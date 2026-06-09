@@ -42,8 +42,14 @@ No config file needed on the VM.
 
 ```sh
 git clone <your-fork-of-mysettings> ~/src/mysettings
-ln -sf ~/src/mysettings/scripts/devbox ~/.local/bin/devbox    # or anywhere on PATH
 
+# put devbox on your PATH (this dir doesn't exist by default on macOS)
+mkdir -p ~/.local/bin
+ln -sf ~/src/mysettings/scripts/devbox ~/.local/bin/devbox
+# ensure it's on PATH (check with `echo $PATH`); if not, add to ~/.zshrc:
+#   export PATH="$HOME/.local/bin:$PATH"
+
+mkdir -p ~/.config
 cp ~/src/mysettings/scripts/devbox.env.example ~/.config/devbox.env
 $EDITOR ~/.config/devbox.env        # fill in RG, VM, SSH host alias, remote home
 ```
@@ -55,10 +61,12 @@ a dynamic public IP gets a new address on restart, but the DNS alias follows it.
 Requirements on the Mac: Azure CLI (`az login` done), the `ssh` client, and
 VS Code's `code` command on PATH (VS Code → *Shell Command: Install 'code' in PATH*).
 
-### 3. One-time: let the VM stop itself
+### 3. One-time: let the VM stop itself  (required for `devbox down` *on* the VM)
 
-So `devbox down` works from *on* the VM, give it a managed identity scoped to
-just itself. Run on the **Mac**:
+So `devbox down` works from *on* the VM (e.g. when you finish from your phone),
+give it a managed identity scoped to just itself. **Run this once on the Mac** —
+if you skip it, VM-side `devbox down` will fail and tell you to come back here.
+You can always deallocate from the Mac or the Azure app without it.
 
 ```sh
 ~/src/mysettings/scripts/devbox-bootstrap-identity.sh

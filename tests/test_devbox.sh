@@ -187,7 +187,7 @@ _tmux() {
 }
 reset_calls; out="$(out_of ensure_claude)"
 assert_missing "ensure does not blind-fire when not ready" "$(calls)" "send-keys"
-assert_contains "ensure tells user to run it manually" "$out" "manually"
+assert_contains "ensure tells user how to pair manually" "$out" "/remote-control"
 
 echo "== credits (subscription-wide spend) =="
 as_mac; SUB="sub1"

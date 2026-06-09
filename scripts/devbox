@@ -159,9 +159,12 @@ wait_for_ssh() {
   while [ "$i" -lt "$max" ]; do
     if _ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
             "$SSH_HOST" true 2>/dev/null; then
+      [ "$i" -gt 0 ] && info "  ...SSH ready."
       return 0
     fi
-    i=$((i + 1)); _sleep 5
+    i=$((i + 1))
+    [ $((i % 3)) -eq 0 ] && info "  ...still waiting for SSH (~$((i * 5))s)"
+    _sleep 5
   done
   return 1
 }
@@ -205,7 +208,8 @@ ensure_claude() {
   fi
 
   if ! wait_for_claude_ready; then
-    info "Claude isn't ready yet. Attach with 'devbox claude' and run /remote-control manually."
+    info "Claude isn't ready yet. To pair your phone: attach the session ('devbox claude'"
+    info "on the VM - from the Mac open the VS Code terminal or 'devbox ssh' first) and type /remote-control."
     return 0
   fi
 
@@ -217,9 +221,10 @@ ensure_claude() {
 
   if verify_remote_control; then
     _tmux set-environment -t "$SESSION" DEVBOX_RC_DONE 1
-    info "Remote-control enabled - reachable from your phone."
+    info "Remote-control started - open the Claude app on your phone to finish pairing."
   else
-    info "Could not confirm remote-control. Attach with 'devbox claude' and run /remote-control manually."
+    info "Couldn't confirm remote-control. Attach the session ('devbox claude' on the VM -"
+    info "from the Mac open the VS Code terminal or 'devbox ssh' first) and type /remote-control."
   fi
 }
 
@@ -254,9 +259,9 @@ cmd_down() {
     case "$(power_state)" in
       *deallocated*) info "devbox is already deallocated (not being charged)."; return 0;;
     esac
-    info "Deallocating devbox..."
+    info "Deallocating devbox - this ends any running Claude session (incl. phone remote-control)."
     _az vm deallocate -g "$RG" -n "$VM" ${az_sub[@]+"${az_sub[@]}"} --no-wait -o none
-    info "Deallocation requested. Compute charges stop once it completes."
+    info "Deallocation requested. Run 'devbox status' in ~30s to confirm it reads DEALLOCATED (billing stops then)."
   fi
 }
 
@@ -265,6 +270,7 @@ cmd_status() {
   local s; s="$(power_state)"
   info "devbox: ${s:-?}"
   info "  -> $(billing_note "$s")"
+  print_credits
 }
 
 cmd_code() {
@@ -275,7 +281,7 @@ cmd_code() {
   need_cmd ssh
   need_cmd code "Run VS Code's 'Shell Command: Install code in PATH'."
   local project="${1:-$DEFAULT_PROJECT}"
-  [ -n "$project" ] || die "No project given and DEVBOX_DEFAULT_PROJECT is unset."
+  [ -n "$project" ] || die "No project. Pass one ('devbox code myproject') or set DEVBOX_DEFAULT_PROJECT in your config."
 
   case "$(power_state)" in
     *running*) : ;;
@@ -284,7 +290,7 @@ cmd_code() {
   esac
 
   info "Waiting for SSH..."
-  wait_for_ssh || die "devbox did not become SSH-ready within 120s."
+  wait_for_ssh || die "devbox didn't become SSH-ready in 120s. A cold boot can exceed that - just retry. If it persists, check 'devbox ssh' works and DEVBOX_SSH matches your ~/.ssh/config alias."
 
   info "Ensuring Claude session..."
   _ssh "$SSH_HOST" 'zsh -lc "devbox _ensure-claude"' \
@@ -310,11 +316,26 @@ cmd_ssh() {
 
 cmd_autoshutdown() {
   guard_mac autoshutdown; mac_setup; require_az_login
-  _az resource show -g "$RG" --resource-type microsoft.devtestlab/schedules \
+  # Array projection keeps a deterministic column order across az versions
+  # (unlike a {} hash, whose TSV ordering varies): status, time, tz, notify, warn, email
+  local out; out="$(_az resource show -g "$RG" --resource-type microsoft.devtestlab/schedules \
      -n "shutdown-computevm-$VM" ${az_sub[@]+"${az_sub[@]}"} \
-     --query "{status:properties.status, time:properties.dailyRecurrence.time, timezone:properties.timeZoneId, notify:properties.notificationSettings.status}" \
-     -o table 2>/dev/null \
+     --query "[properties.status, properties.dailyRecurrence.time, properties.timeZoneId, properties.notificationSettings.status, properties.notificationSettings.timeInMinutes, properties.notificationSettings.emailRecipient]" \
+     -o tsv 2>/dev/null)" \
      || die "No auto-shutdown schedule found for $VM (or insufficient permissions)."
+  # Array TSV prints one value per line in declared order - read them back in order.
+  local statusv timev tzv notifyv warn email
+  { IFS= read -r statusv; IFS= read -r timev; IFS= read -r tzv
+    IFS= read -r notifyv; IFS= read -r warn;  IFS= read -r email; } <<EOF
+$out
+EOF
+  info "Auto-shutdown: $statusv at $timev ($tzv) -> deallocates devbox"
+  if [ "$notifyv" = "Enabled" ]; then
+    info "  Warning: ${warn:-?} min before, emailed to ${email:-<none>}"
+    info "  Tip: when warned, run 'devbox down' then 'devbox code' later, or postpone via the email link."
+  else
+    info "  !! No warning configured - it will deallocate with NO heads-up, dropping any live session."
+  fi
 }
 
 cmd_help() {
@@ -331,7 +352,11 @@ devbox - control your Azure dev VM and Claude session
   devbox autoshutdown    show the auto-shutdown schedule          [Mac]
   devbox help            this help
 
-Config (Mac): ~/.config/devbox.env  (see devbox.env.example)
+Billing: use 'devbox down' to stop charges. The OS "shut down" does NOT - a
+stopped-but-allocated VM keeps billing for compute; only deallocate stops it.
+
+First run (Mac): cp scripts/devbox.env.example ~/.config/devbox.env && edit it,
+then 'az login'. See scripts/DEVBOX.md.
 EOF
 }
 
