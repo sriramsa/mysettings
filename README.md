@@ -1,41 +1,117 @@
 # mysettings
 
-My personal dev environment — terminal, editor, and dev-VM workflow.
-Originally a 2015 Vim/tmux/zsh setup; modernized in 2026.
+My personal dev environment — shell, editor, terminal, and a one-command Azure
+dev-VM workflow. Started life in 2015 as a Vim/tmux/zsh setup; modernized in 2026
+(Neovim + LSP, a `devbox` CLI, and Terraform disaster recovery).
 
-## What's here
+This is a **public** repo. Nothing identifying (VM names, subscription IDs, IPs,
+keys) is committed — all machine-specific values live in untracked local files.
 
-| File / dir | What it is |
-| --- | --- |
-| `nvim/` | **Neovim** config (lazy.nvim + native LSP via Mason + treesitter + telescope). See `nvim/README.md`. |
-| `.zshrc` | **zsh** config (oh-my-zsh + powerlevel10k, vi-mode, fzf, truecolor). |
-| `.tmux.conf` | **tmux** config (vi keys, mouse, 24-bit truecolor passthrough). |
-| `scripts/devbox` | **devbox CLI** — start/deallocate an Azure dev VM and bring up a phone-reachable Claude session. See `scripts/DEVBOX.md`. |
-| `scripts/` | helpers — `clang-format.py`, `vim_switch_scheme.vim`, VNC/setup utilities. |
-| `tests/` | test suite for the devbox CLI (`bash tests/test_devbox.sh`). |
-| `.vimrc`, `.my_zshrc` | the original 2015–2016 Vim/zsh configs, kept for reference. |
+---
 
-## Quick start
+## Layout
 
-```sh
-git clone <this-repo> ~/src/mysettings
-
-# shells
-ln -sf ~/src/mysettings/.zshrc     ~/.zshrc
-ln -sf ~/src/mysettings/.tmux.conf ~/.tmux.conf
-
-# neovim  (needs Neovim >= 0.10; lazy.nvim + Mason self-bootstrap on first launch)
-ln -sf ~/src/mysettings/nvim ~/.config/nvim
-
-# devbox CLI  (see scripts/DEVBOX.md for the Mac/VM split + Azure setup)
-ln -sf ~/src/mysettings/scripts/devbox ~/.local/bin/devbox
+```
+.
+├── .zshrc                  # zsh: oh-my-zsh + powerlevel10k, vi-mode, fzf, truecolor
+├── .tmux.conf              # tmux: vi keys, mouse, 24-bit truecolor passthrough
+├── nvim/                   # Neovim config (lazy.nvim + LSP + treesitter)  -> nvim/README.md
+│   ├── init.lua
+│   └── lazy-lock.json      # pinned, validated plugin versions
+├── scripts/
+│   ├── devbox              # the devbox CLI (start/stop VM + Claude session)  -> scripts/DEVBOX.md
+│   ├── devbox-bootstrap-identity.sh
+│   ├── devbox.env.example  # config template (copy to ~/.config/devbox.env)
+│   └── …legacy helpers (clang-format.py, vim_switch_scheme.vim, …)
+├── provision/              # Terraform + cloud-init to rebuild the VM  -> provision/README.md
+│   ├── *.tf, terraform.tfvars.example
+│   ├── cloud-init.yaml.tftpl
+│   └── bootstrap-devbox.sh
+├── tests/test_devbox.sh    # dependency-free test suite for devbox (mocks az/ssh/tmux)
+└── …reference relics (.vimrc, .my_zshrc, putty-monokai.reg, *.yml)
 ```
 
-## Notes
+---
 
-- **Truecolor:** the configs assume a 24-bit terminal (iTerm2, etc.). Inside tmux,
-  the `Tc` overrides in `.tmux.conf` carry it through over SSH.
-- **Secrets stay out of this (public) repo.** Machine-specific config lives in
-  `~/.config/devbox.env` (untracked); only `scripts/devbox.env.example` is committed.
+## The four pieces
+
+### 1. Shell & terminal
+- **`.zshrc`** — oh-my-zsh + powerlevel10k, `set -o vi` with `KEYTIMEOUT=1`, fzf,
+  `batcat`, history tuning, and `COLORTERM=truecolor`.
+- **`.tmux.conf`** — vi copy-mode, mouse, and the `Tc` overrides that pass 24-bit
+  truecolor through tmux over SSH (needs a truecolor terminal like iTerm2).
+
+Symlink them: `ln -sf $PWD/.zshrc ~/.zshrc && ln -sf $PWD/.tmux.conf ~/.tmux.conf`.
+
+### 2. Neovim — [`nvim/README.md`](nvim/README.md)
+Modern rewrite of the old `.vimrc`: **lazy.nvim**, **native LSP via Mason**,
+**treesitter**, **telescope**, **conform**. Old muscle-memory keymaps preserved
+(`,g`/`,s`/`,c`, `F4`/`F8`, `C-f`/`C-b`). Validated on Neovim 0.12.2.
+`ln -sf $PWD/nvim ~/.config/nvim`, launch `nvim`, plugins self-install.
+
+### 3. `devbox` CLI — [`scripts/DEVBOX.md`](scripts/DEVBOX.md)
+One command to run an Azure dev VM cheaply and reach Claude from your phone:
+
+```
+devbox up | down | status        # power on / deallocate (stops billing) / state + spend
+devbox code [project]            # start VM, bring up a phone-pairable Claude session, open VS Code
+devbox claude                    # attach that Claude session (on the VM)
+devbox ssh | autoshutdown | help
+```
+
+One portable script that auto-detects Mac vs VM (via Azure IMDS). Config lives in
+`~/.config/devbox.env` (untracked). See the doc for the Mac/VM split, the
+managed-identity setup, and the billing model.
+
+### 4. Disaster recovery — [`provision/README.md`](provision/README.md)
+Lost the VM? **Terraform** recreates the Azure resources (VM, static IP + DNS,
+NSG, self-deallocate identity, auto-shutdown) and **cloud-init** runs
+`bootstrap-devbox.sh` to reinstall tooling and re-apply this repo. `terraform
+apply`, wait for cloud-init, `ssh` in, `claude` login — done.
+
+---
+
+## Quick start (fresh machine)
+
+```sh
+git clone <this-repo> ~/src/mysettings && cd ~/src/mysettings
+
+# shell + terminal
+ln -sf $PWD/.zshrc ~/.zshrc
+ln -sf $PWD/.tmux.conf ~/.tmux.conf
+
+# neovim (needs >= 0.10; plugins + LSPs self-bootstrap)
+ln -sf $PWD/nvim ~/.config/nvim
+
+# devbox CLI
+mkdir -p ~/.local/bin && ln -sf $PWD/scripts/devbox ~/.local/bin/devbox
+cp scripts/devbox.env.example ~/.config/devbox.env   # then edit it
+```
+
+On a brand-new VM, `provision/bootstrap-devbox.sh` does all of the above
+automatically.
+
+## Tests
+
+```sh
+bash tests/test_devbox.sh        # 40 tests, no external deps (az/ssh/tmux mocked)
+```
+
+## Design principles
+
+- **Secrets stay out of this public repo.** Real values live only in
+  `~/.config/devbox.env` and `provision/terraform.tfvars` (both gitignored);
+  committed files ship `.example` templates with placeholders.
+- **Truecolor end to end** — iTerm2 → SSH → tmux (`Tc`) → nvim (`termguicolors`).
+- **One portable `devbox`** that adapts to where it runs instead of two scripts.
+- **Verify for real** — devbox has a test suite; the Terraform and Neovim configs
+  were validated by actually running them.
+
+## Reference relics (kept, not used)
+
+The original 2015–2017 setup, left for reference: `.vimrc` (Vundle/YouCompleteMe
+era), `.my_zshrc`, `putty-monokai.reg`, `siege.yml`/`ap.yml`/`wf.yml` (old load
+test / Ansible), `FIXES.md`, `Useful.Commands`, and `scripts/{clang-format.py,
+start_vnc.sh, ubuntu_install_pkgs.sh, vim_switch_scheme.vim}`.
 
 No warranties — copy and adapt as you like.
