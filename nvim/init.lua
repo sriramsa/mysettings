@@ -141,13 +141,19 @@ require("lazy").setup({
   -- Treesitter: syntax + highlight (replaces all the old per-language syntax plugins)
   {
     "nvim-treesitter/nvim-treesitter",
+    branch = "master",  -- stable classic API; the new `main` branch dropped .configs.setup
     build = ":TSUpdate",
     config = function()
+      -- Only auto-install parsers where a C compiler exists (they're compiled).
+      -- Keeps startup clean on hosts without a toolchain (e.g. a bare VM).
+      local has_cc = vim.fn.executable("cc") == 1
+        or vim.fn.executable("gcc") == 1
+        or vim.fn.executable("clang") == 1
       require("nvim-treesitter.configs").setup({
-        ensure_installed = {
+        ensure_installed = has_cc and {
           "c", "cpp", "go", "python", "javascript", "typescript",
           "lua", "vim", "vimdoc", "bash", "json", "yaml", "markdown",
-        },
+        } or {},
         highlight = { enable = true },
         indent = { enable = true },
       })
