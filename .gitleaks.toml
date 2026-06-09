@@ -1,0 +1,11 @@
+# gitleaks config — extends the built-in ruleset, with an allowlist for the
+# example/template files (they ship only placeholders).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Template files contain placeholders, not real secrets"
+paths = [
+  '''scripts/devbox\.env\.example''',
+  '''provision/terraform\.tfvars\.example''',
+]

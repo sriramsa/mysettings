@@ -8,6 +8,12 @@
 # a temp file, set the globals by hand, then call functions in subshells (so a
 # die()/exit doesn't kill the harness) and assert on calls/output/exit codes.
 
+# These tests source the devbox script and drive it: they set globals it
+# consumes, read vars it assigns (az_sub), and define mock wrappers it calls
+# indirectly. shellcheck can't follow the `source`, so silence those file-wide
+# false positives (must precede the first command to be file-scoped):
+# shellcheck disable=SC2034,SC2154,SC2329,SC2015
+
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

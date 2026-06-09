@@ -1,0 +1,18 @@
+# Local guard rails. Install once: `pip install pre-commit && pre-commit install`
+# Then these run on every `git commit`. Keep revs fresh with `pre-commit autoupdate`.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks            # block secrets before they're committed
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        files: ^(scripts/devbox|scripts/devbox-bootstrap-identity\.sh|provision/bootstrap-devbox\.sh|tests/test_devbox\.sh)$
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt

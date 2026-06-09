@@ -28,6 +28,8 @@ keys) is committed — all machine-specific values live in untracked local files
 │   ├── cloud-init.yaml.tftpl
 │   └── bootstrap-devbox.sh
 ├── tests/test_devbox.sh    # dependency-free test suite for devbox (mocks az/ssh/tmux)
+├── Makefile                # make install / test / lint / scan / check
+├── .github/workflows/ci.yml  # CI: tests, shellcheck, terraform validate, gitleaks
 └── …reference relics (.vimrc, .my_zshrc, putty-monokai.reg, *.yml)
 ```
 
@@ -91,11 +93,19 @@ cp scripts/devbox.env.example ~/.config/devbox.env   # then edit it
 On a brand-new VM, `provision/bootstrap-devbox.sh` does all of the above
 automatically.
 
-## Tests
+## Tests & checks
 
 ```sh
-bash tests/test_devbox.sh        # 40 tests, no external deps (az/ssh/tmux mocked)
+make test     # 40 devbox tests (az/ssh/tmux mocked, no external deps)
+make lint     # shellcheck the scripts
+make scan     # gitleaks secret scan over full git history
+make check    # all of the above
+make install  # symlink dotfiles + nvim + devbox into place
 ```
+
+**CI** (`.github/workflows/ci.yml`) runs the tests, shellcheck, `terraform
+validate`, and a gitleaks secret scan on every push/PR. A `.pre-commit-config.yaml`
+runs gitleaks + shellcheck + `terraform fmt` locally on commit (`pre-commit install`).
 
 ## Design principles
 
