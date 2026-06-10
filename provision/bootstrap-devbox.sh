@@ -18,7 +18,20 @@ sudo apt-get update -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   zsh tmux git curl unzip \
   build-essential python3 python3-pip \
-  ripgrep fzf bat nodejs npm
+  ripgrep fzf bat
+
+log "node 18+ (Ubuntu 22.04's apt nodejs is v12 - too old for claude / mason LSPs)"
+need_node=1
+if command -v node >/dev/null 2>&1; then
+  ver="$(node -v | sed 's/v\([0-9]*\).*/\1/')"
+  [ "${ver:-0}" -ge 18 ] && need_node=0
+fi
+if [ "$need_node" = 1 ]; then
+  # No '|| true' here: if Node fails, the box can't run claude, so fail loudly.
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+fi
+echo "node $(node -v)  npm $(npm -v)"
 
 log "oh-my-zsh + powerlevel10k"
 export RUNZSH=no CHSH=no

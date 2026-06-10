@@ -23,6 +23,14 @@ which you restore from their own git remotes.
 
 ## Run it
 
+> ⚠️ **Before you apply.** This creates *fresh* resources; it does not adopt an
+> existing box. It does **not** import what's already there, and the `dns_label`
+> is globally unique per region — so `apply` will **collide and fail** if the old
+> VM / public IP / resource group still exist. Use this only after a **total
+> loss** (old resources gone), OR `terraform import` the surviving resources into
+> state first. (A remote state backend + a one-time `import` to make Terraform the
+> source of truth is the recommended longer-term setup.)
+
 ```sh
 cd provision
 cp terraform.tfvars.example terraform.tfvars
