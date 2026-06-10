@@ -11,10 +11,15 @@ dns_label           = "my-unique-devbox-label"   # -> <label>.<region>.cloudapp.
 repo_url            = "https://github.com/youruser/mysettings.git"
 autoshutdown_email  = "you@example.com"
 
+# SSH access — lock this to YOUR IP; "*" opens port 22 to the whole internet.
+ssh_source_address  = "203.0.113.4/32"   # your public IP (curl ifconfig.me); use "*" only if you must
+
 # Optional overrides (defaults shown):
 # vm_size                   = "Standard_B4ms"
 # os_disk_type              = "StandardSSD_LRS"
-# ssh_source_address        = "*"          # set to "<your-ip>/32" to lock SSH to you
 # autoshutdown_time         = "2300"
 # autoshutdown_timezone     = "Pacific Standard Time"
 # autoshutdown_warn_minutes = 30
+# monthly_budget            = 150          # USD/month cost-alert threshold
+# budget_alert_email        = ""           # blank -> uses autoshutdown_email
+# budget_start_date         = "2026-06-01T00:00:00Z"  # first of a month, on/before today

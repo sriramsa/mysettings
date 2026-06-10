@@ -2,7 +2,13 @@ name: CI
 
 on:
   push:
+    branches: [master]   # branch pushes run via the pull_request event instead
   pull_request:
+
+# Cancel superseded runs; don't stack/duplicate.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Least privilege: these jobs only read the repo.
 permissions:

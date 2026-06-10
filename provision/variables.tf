@@ -79,3 +79,21 @@ variable "autoshutdown_email" {
   type        = string
   description = "Email for the auto-shutdown warning."
 }
+
+variable "monthly_budget" {
+  type        = number
+  description = "Monthly cost budget (USD) that triggers alerts."
+  default     = 150
+}
+
+variable "budget_alert_email" {
+  type        = string
+  description = "Email for budget alerts; blank uses autoshutdown_email."
+  default     = ""
+}
+
+variable "budget_start_date" {
+  type        = string
+  description = "Budget start (RFC3339); must be the first of a month, on/before today."
+  default     = "2026-06-01T00:00:00Z"
+}

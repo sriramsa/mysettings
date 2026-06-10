@@ -132,6 +132,35 @@ resource "azurerm_role_assignment" "self_deallocate" {
   principal_id         = azurerm_linux_virtual_machine.vm.identity[0].principal_id
 }
 
+# Subscription cost alert — closes the billing loop beyond the per-VM auto-shutdown.
+# Alerts only (doesn't cap spend): 80% actual + 100% forecast.
+resource "azurerm_consumption_budget_subscription" "budget" {
+  name            = "${var.vm_name}-monthly-budget"
+  subscription_id = "/subscriptions/${var.subscription_id}"
+  amount          = var.monthly_budget
+  time_grain      = "Monthly"
+
+  time_period {
+    start_date = var.budget_start_date
+  }
+
+  notification {
+    enabled        = true
+    threshold      = 80
+    operator       = "GreaterThanOrEqualTo"
+    threshold_type = "Actual"
+    contact_emails = [coalesce(var.budget_alert_email, var.autoshutdown_email)]
+  }
+
+  notification {
+    enabled        = true
+    threshold      = 100
+    operator       = "GreaterThanOrEqualTo"
+    threshold_type = "Forecasted"
+    contact_emails = [coalesce(var.budget_alert_email, var.autoshutdown_email)]
+  }
+}
+
 resource "azurerm_dev_test_global_vm_shutdown_schedule" "autoshutdown" {
   virtual_machine_id    = azurerm_linux_virtual_machine.vm.id
   location              = azurerm_resource_group.rg.location
